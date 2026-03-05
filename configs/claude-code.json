@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://localhost:9800/notify -H 'Content-Type: application/json' -d '{\"source\":\"claude-code\",\"event\":\"task_complete\"}'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://localhost:9800/notify -H 'Content-Type: application/json' -d '{\"source\":\"claude-code\",\"event\":\"need_input\",\"message\":\"Claude is idle, needs your input\"}'",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://localhost:9800/notify -H 'Content-Type: application/json' -d '{\"source\":\"claude-code\",\"event\":\"need_input\",\"message\":\"Claude needs permission\"}'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

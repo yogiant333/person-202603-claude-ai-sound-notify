@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "AfterAgent": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://localhost:9800/notify -H 'Content-Type: application/json' -d '{\"source\":\"gemini\",\"event\":\"task_complete\"}'",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://localhost:9800/notify -H 'Content-Type: application/json' -d '{\"source\":\"gemini\",\"event\":\"need_input\"}'",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

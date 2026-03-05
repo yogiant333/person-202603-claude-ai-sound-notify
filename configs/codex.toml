@@ -1,0 +1,10 @@
+# Codex CLI notification configuration
+# Add these settings to ~/.codex/config.toml
+
+# External notification command - fires on agent-turn-complete
+notify = ["bash", "-c", "curl -s -X POST http://localhost:9800/notify -H 'Content-Type: application/json' -d '{\"source\":\"codex\",\"event\":\"task_complete\"}'"]
+
+# Enable TUI notifications for approval-requested events (terminal bell)
+[tui]
+notifications = true
+notification_method = "bel"

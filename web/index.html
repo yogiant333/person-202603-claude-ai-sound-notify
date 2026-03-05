@@ -371,6 +371,122 @@
     white-space: nowrap;
   }
 
+  /* ── Sound Settings Panel ──────────────────────────── */
+  .sound-settings {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+
+  .sound-settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+
+  .sound-settings-header:hover {
+    background: var(--bg-elevated);
+  }
+
+  .sound-settings-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .sound-settings-chevron {
+    width: 20px;
+    height: 20px;
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .sound-settings.open .sound-settings-chevron {
+    transform: rotate(180deg);
+  }
+
+  .sound-settings-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, padding 0.35s ease;
+    padding: 0 20px;
+  }
+
+  .sound-settings.open .sound-settings-body {
+    max-height: 600px;
+    padding: 0 20px 20px;
+  }
+
+  .sound-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sound-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    flex-wrap: wrap;
+  }
+
+  .sound-row-badges {
+    display: flex;
+    gap: 6px;
+    min-width: 180px;
+  }
+
+  .sound-row select {
+    flex: 1;
+    min-width: 160px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .sound-row select:focus {
+    border-color: var(--text-muted);
+  }
+
+  .btn-preview {
+    padding: 5px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-preview:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+  }
+
+  .btn-preview:active {
+    transform: scale(0.96);
+  }
+
   /* ── Responsive ─────────────────────────────────────── */
   @media (max-width: 640px) {
     .header { padding: 12px 16px; }
@@ -448,6 +564,19 @@
 
   </div>
 
+  <p class="section-label">Sound Settings</p>
+  <div class="sound-settings" id="soundSettings">
+    <div class="sound-settings-header" id="soundSettingsToggle">
+      <span class="sound-settings-title">Custom Sounds for Each Source &amp; Event</span>
+      <svg class="sound-settings-chevron" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+      </svg>
+    </div>
+    <div class="sound-settings-body">
+      <div class="sound-grid" id="soundGrid"></div>
+    </div>
+  </div>
+
   <div class="history-section">
     <p class="section-label">Notification History</p>
     <div class="history-list" id="historyList">
@@ -471,6 +600,78 @@
     'gemini': true,
     'codex': true
   };
+
+  // ── Sound file definitions ─────────────────────────
+  var SOUND_FILES = [
+    'abstract-sound1', 'abstract-sound2', 'abstract-sound3', 'abstract-sound4',
+    'cow-mooing', 'fahhhhh', 'phone-vibration', 'rooster'
+  ];
+
+  var SOURCES = ['claude-code', 'gemini', 'codex'];
+  var EVENTS = ['task_complete', 'need_input'];
+
+  // Sound preferences: { "claude-code:task_complete": "synthesized", ... }
+  var soundPreferences = {};
+  // Pre-loaded Audio objects keyed by filename
+  var audioCache = {};
+
+  function preloadAudioFiles() {
+    SOUND_FILES.forEach(function (name) {
+      var audio = new Audio('/sounds/' + name + '.wav');
+      audio.preload = 'auto';
+      audioCache[name] = audio;
+    });
+  }
+
+  preloadAudioFiles();
+
+  function getPreferenceKey(source, event) {
+    return source + ':' + event;
+  }
+
+  function getPreference(source, event) {
+    return soundPreferences[getPreferenceKey(source, event)] || 'synthesized';
+  }
+
+  // ── IndexedDB ──────────────────────────────────────
+  var dbPromise = (function () {
+    return new Promise(function (resolve, reject) {
+      var request = indexedDB.open('ai-sound-notify', 1);
+      request.onupgradeneeded = function (e) {
+        var db = e.target.result;
+        if (!db.objectStoreNames.contains('settings')) {
+          db.createObjectStore('settings');
+        }
+      };
+      request.onsuccess = function (e) { resolve(e.target.result); };
+      request.onerror = function (e) { reject(e.target.error); };
+    });
+  })();
+
+  function loadPreferences() {
+    return dbPromise.then(function (db) {
+      return new Promise(function (resolve) {
+        var tx = db.transaction('settings', 'readonly');
+        var store = tx.objectStore('settings');
+        var req = store.get('soundPreferences');
+        req.onsuccess = function () {
+          if (req.result) {
+            soundPreferences = req.result;
+          }
+          resolve();
+        };
+        req.onerror = function () { resolve(); };
+      });
+    }).catch(function () { /* ignore */ });
+  }
+
+  function savePreferences() {
+    dbPromise.then(function (db) {
+      var tx = db.transaction('settings', 'readwrite');
+      var store = tx.objectStore('settings');
+      store.put(soundPreferences, 'soundPreferences');
+    }).catch(function () { /* ignore */ });
+  }
 
   // ── Audio context (lazy init for autoplay policy) ────
   let audioCtx = null;
@@ -540,11 +741,23 @@
     }
   }
 
+  function playFileSound(name) {
+    var cached = audioCache[name];
+    if (!cached) return;
+    // Clone so overlapping plays work
+    var audio = cached.cloneNode();
+    audio.volume = parseFloat(volumeSlider.value);
+    audio.play().catch(function () {});
+  }
+
   function playSound(source, event) {
     if (globalMuted) return;
     if (!sourceEnabled[source]) return;
 
-    if (event === 'task_complete') {
+    var pref = getPreference(source, event);
+    if (pref !== 'synthesized' && audioCache[pref]) {
+      playFileSound(pref);
+    } else if (event === 'task_complete') {
       playTaskComplete(source);
     } else if (event === 'need_input') {
       playNeedInput(source);
@@ -719,7 +932,78 @@
     reconnectTimer = setInterval(connectWebSocket, 3000);
   }
 
+  // ── Sound settings panel ─────────────────────────────
+  var soundSettingsPanel = document.getElementById('soundSettings');
+  var soundSettingsToggle = document.getElementById('soundSettingsToggle');
+  var soundGrid = document.getElementById('soundGrid');
+
+  soundSettingsToggle.addEventListener('click', function () {
+    soundSettingsPanel.classList.toggle('open');
+  });
+
+  function buildSoundGrid() {
+    soundGrid.innerHTML = '';
+    SOURCES.forEach(function (source) {
+      EVENTS.forEach(function (event) {
+        var key = getPreferenceKey(source, event);
+        var row = document.createElement('div');
+        row.className = 'sound-row';
+
+        var badges = document.createElement('div');
+        badges.className = 'sound-row-badges';
+        badges.innerHTML =
+          '<span class="badge badge-source ' + source + '">' + (SOURCE_LABELS[source] || source) + '</span>' +
+          '<span class="badge badge-event ' + event + '">' + (EVENT_LABELS[event] || event) + '</span>';
+
+        var select = document.createElement('select');
+        select.dataset.key = key;
+        var synthOpt = document.createElement('option');
+        synthOpt.value = 'synthesized';
+        synthOpt.textContent = 'Synthesized (default)';
+        select.appendChild(synthOpt);
+        SOUND_FILES.forEach(function (name) {
+          var opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+        select.value = soundPreferences[key] || 'synthesized';
+
+        select.addEventListener('change', function () {
+          soundPreferences[key] = this.value;
+          savePreferences();
+        });
+
+        var previewBtn = document.createElement('button');
+        previewBtn.className = 'btn-preview';
+        previewBtn.textContent = 'Preview';
+        previewBtn.type = 'button';
+        previewBtn.addEventListener('click', function () {
+          var val = select.value;
+          if (val === 'synthesized') {
+            // Play synthesized directly, bypassing mute for preview
+            if (event === 'task_complete') {
+              playTaskComplete(source);
+            } else {
+              playNeedInput(source);
+            }
+          } else {
+            playFileSound(val);
+          }
+        });
+
+        row.appendChild(badges);
+        row.appendChild(select);
+        row.appendChild(previewBtn);
+        soundGrid.appendChild(row);
+      });
+    });
+  }
+
   // ── Init ─────────────────────────────────────────────
+  loadPreferences().then(function () {
+    buildSoundGrid();
+  });
   connectWebSocket();
 })();
 </script>

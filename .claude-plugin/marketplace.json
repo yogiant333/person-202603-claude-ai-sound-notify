@@ -1,12 +1,20 @@
 {
   "name": "yogiant333-ai-sound-notify",
   "description": "AI Sound Notify plugin marketplace",
+  "owner": {
+    "name": "yogiant333"
+  },
   "plugins": [
     {
       "name": "ai-sound-notify",
       "version": "1.0.0",
       "description": "Sound notifications for AI coding agents - plays distinct browser sounds when tasks complete or need your input",
-      "path": "."
+      "author": {
+        "name": "yogiant333"
+      },
+      "source": ".",
+      "category": "productivity",
+      "homepage": "https://github.com/yogiant333/ai-sound-notify"
     }
   ]
 }

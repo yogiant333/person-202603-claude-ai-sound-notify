@@ -1,0 +1,11 @@
+{
+  "name": "ai-sound-notify",
+  "version": "1.0.0",
+  "description": "Sound notifications for AI coding agents - plays distinct browser sounds when tasks complete or need your input",
+  "author": {
+    "name": "yogiant333"
+  },
+  "repository": "https://github.com/yogiant333/ai-sound-notify",
+  "license": "MIT",
+  "keywords": ["notification", "sound", "hooks", "productivity"]
+}

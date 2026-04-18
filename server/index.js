@@ -74,10 +74,21 @@ const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
   console.log('[WS] Client connected. Total:', wss.clients.size);
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
   ws.on('close', () => {
     console.log('[WS] Client disconnected. Total:', wss.clients.size);
   });
 });
+
+// Heartbeat: ping every 20s, terminate dead connections
+setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (!ws.isAlive) return ws.terminate();
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 20000);
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[ai-sound-notify] Server running on http://0.0.0.0:${PORT}`);

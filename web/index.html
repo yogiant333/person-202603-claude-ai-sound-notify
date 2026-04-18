@@ -955,6 +955,38 @@
     reconnectTimer = setInterval(connectWebSocket, 3000);
   }
 
+  // ── Anti-sleep: keep tab alive ────────────────────
+  // 1. Reconnect when tab becomes visible again
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        connectWebSocket();
+      }
+    }
+  });
+
+  // 2. Web Worker keepalive - prevents browser from suspending the tab
+  var keepAliveWorker = null;
+  try {
+    var workerBlob = new Blob([
+      'setInterval(function(){postMessage("keepalive")},15000);'
+    ], { type: 'application/javascript' });
+    keepAliveWorker = new Worker(URL.createObjectURL(workerBlob));
+    keepAliveWorker.onmessage = function () {
+      // Worker tick keeps the tab active
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        connectWebSocket();
+      }
+    };
+  } catch (e) {
+    // Fallback: use setInterval (may be throttled in background)
+    setInterval(function () {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        connectWebSocket();
+      }
+    }, 15000);
+  }
+
   // ── Sound settings panel ─────────────────────────────
   var soundSettingsPanel = document.getElementById('soundSettings');
   var soundSettingsToggle = document.getElementById('soundSettingsToggle');

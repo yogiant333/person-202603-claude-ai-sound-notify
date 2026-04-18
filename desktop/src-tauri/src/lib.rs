@@ -1,3 +1,4 @@
+mod audio;
 mod config;
 mod monitor;
 
@@ -7,9 +8,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             config::get_config,
             config::set_config,
+            audio::pick_audio_file,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

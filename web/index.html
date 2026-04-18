@@ -841,17 +841,35 @@
 
     var pref = getPreference(source, event);
     if (pref === 'synthesized') {
-      // Default: use matching synth sound
-      if (event === 'task_complete') {
-        playTaskComplete(source);
-      } else {
-        playNeedInput(source);
-      }
+      (event === 'task_complete' ? playTaskComplete : playNeedInput)(source);
     } else if (pref.startsWith('synth-')) {
       playSynthById(pref);
+    } else if (pref.indexOf('file::') === 0) {
+      playExternalFile(pref.slice('file::'.length));
     } else if (audioCache[pref]) {
       playFileSound(pref);
     }
+  }
+
+  function playExternalFile(path) {
+    if (!IS_DESKTOP || !TAURI.core) return;
+    var src = TAURI.core.convertFileSrc(path);
+    var audio = new Audio(src);
+    audio.volume = parseFloat(volumeSlider.value);
+    audio.play().catch(function (e) { console.error('external play failed', e); });
+  }
+
+  function persistConfig() {
+    if (!IS_DESKTOP) return;
+    invoke('get_config').then(function (cfg) {
+      cfg.sound_preferences = soundPreferences;
+      cfg.volume = parseFloat(volumeSlider.value);
+      cfg.global_muted = globalMuted;
+      cfg.source_enabled = sourceEnabled;
+      var trimmed = serverUrlInput && serverUrlInput.value.trim();
+      if (trimmed) cfg.server_url = trimmed;
+      return invoke('set_config', { config: cfg });
+    }).catch(function (e) { console.error(e); });
   }
 
   // ── DOM refs ─────────────────────────────────────────
@@ -1144,6 +1162,7 @@
         select.addEventListener('change', function () {
           soundPreferences[key] = this.value;
           savePreferences();
+          persistConfig();
         });
 
         var previewBtn = document.createElement('button');
@@ -1153,13 +1172,11 @@
         previewBtn.addEventListener('click', function () {
           var val = select.value;
           if (val === 'synthesized') {
-            if (event === 'task_complete') {
-              playTaskComplete(source);
-            } else {
-              playNeedInput(source);
-            }
+            (event === 'task_complete' ? playTaskComplete : playNeedInput)(source);
           } else if (val.startsWith('synth-')) {
             playSynthById(val);
+          } else if (val.indexOf('file::') === 0) {
+            playExternalFile(val.slice('file::'.length));
           } else {
             playFileSound(val);
           }
@@ -1168,6 +1185,29 @@
         row.appendChild(badges);
         row.appendChild(select);
         row.appendChild(previewBtn);
+
+        if (IS_DESKTOP) {
+          var pickBtn = document.createElement('button');
+          pickBtn.className = 'btn-preview';
+          pickBtn.type = 'button';
+          pickBtn.title = 'Choose a local audio file';
+          pickBtn.textContent = '\u{1F4C1}';
+          pickBtn.addEventListener('click', function () {
+            invoke('pick_audio_file').then(function (path) {
+              if (!path) return;
+              var optValue = 'file::' + path;
+              soundPreferences[key] = optValue;
+              var opt = document.createElement('option');
+              opt.value = optValue;
+              opt.textContent = path.split(/[\\/]/).pop();
+              opt.selected = true;
+              select.appendChild(opt);
+              persistConfig();
+            });
+          });
+          row.appendChild(pickBtn);
+        }
+
         soundGrid.appendChild(row);
       });
     });

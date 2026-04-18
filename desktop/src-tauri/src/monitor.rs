@@ -34,6 +34,7 @@ impl MonitorState {
         }
     }
 
+    #[allow(dead_code)]
     pub fn status(&self) -> MonitorStatus {
         self.status
     }

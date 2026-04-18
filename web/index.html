@@ -784,6 +784,39 @@
     }
   }
 
+  function playOfflineAlarm() {
+    ensureAudioCtx();
+    var now = audioCtx.currentTime;
+    for (var i = 0; i < 3; i++) {
+      var start = now + i * 0.45;
+      var osc = audioCtx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1200, start);
+      osc.frequency.linearRampToValueAtTime(1600, start + 0.3);
+      var env = audioCtx.createGain();
+      env.gain.setValueAtTime(0.7, start);
+      env.gain.exponentialRampToValueAtTime(0.01, start + 0.3);
+      osc.connect(env); env.connect(gainNode);
+      osc.start(start); osc.stop(start + 0.3);
+    }
+  }
+
+  function playRecoveryChord() {
+    ensureAudioCtx();
+    var now = audioCtx.currentTime;
+    [523.25, 659.25, 783.99].forEach(function (f, i) {
+      var start = now + i * 0.1;
+      var osc = audioCtx.createOscillator();
+      osc.type = 'sine'; osc.frequency.value = f;
+      var env = audioCtx.createGain();
+      env.gain.setValueAtTime(0, start);
+      env.gain.linearRampToValueAtTime(0.5, start + 0.02);
+      env.gain.exponentialRampToValueAtTime(0.01, start + 0.35);
+      osc.connect(env); env.connect(gainNode);
+      osc.start(start); osc.stop(start + 0.4);
+    });
+  }
+
   function playFileSound(name) {
     var cached = audioCache[name];
     if (!cached) return;
@@ -932,6 +965,16 @@
       body: n.message || 'No message',
       tag: n.source + '-' + n.event + '-' + Date.now()
     });
+  }
+
+  function showDesktopToast(title, body) {
+    if (!IS_DESKTOP || !TAURI.notification) return;
+    TAURI.notification.isPermissionGranted().then(function (granted) {
+      if (granted) return true;
+      return TAURI.notification.requestPermission().then(function (p) { return p === 'granted'; });
+    }).then(function (ok) {
+      if (ok) TAURI.notification.sendNotification({ title: title, body: body });
+    }).catch(function () {});
   }
 
   // ── WebSocket ────────────────────────────────────────
@@ -1151,6 +1194,16 @@
         serverUrlInput.value = cfg.server_url;
         volumeSlider.value = String(cfg.volume);
         setServerUrl(cfg.server_url);
+        TAURI.event.listen('monitor-status-changed', function (evt) {
+          var payload = evt.payload;
+          if (payload === 'offline') {
+            if (!globalMuted) playOfflineAlarm();
+            showDesktopToast('\u26A0 Server unreachable', cfg.server_url);
+          } else if (payload === 'online') {
+            if (!globalMuted) playRecoveryChord();
+            showDesktopToast('\u2713 Server recovered', cfg.server_url);
+          }
+        });
         buildSoundGrid();
       });
     }

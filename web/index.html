@@ -487,6 +487,29 @@
     transform: scale(0.96);
   }
 
+  /* ── Server input ──────────────────────────────────── */
+  .server-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+
+  .server-group input {
+    width: 260px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .server-group input:focus { border-color: var(--text-muted); }
+
   /* ── Responsive ─────────────────────────────────────── */
   @media (max-width: 640px) {
     .header { padding: 12px 16px; }
@@ -506,6 +529,10 @@
     <span id="statusText">Disconnected</span>
   </div>
   <div class="header-controls">
+    <div class="server-group">
+      <label for="serverUrlInput">Server</label>
+      <input type="url" id="serverUrlInput" placeholder="https://host:port" spellcheck="false">
+    </div>
     <div class="volume-group">
       <label for="volumeSlider">Vol</label>
       <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.6">
@@ -594,6 +621,13 @@
   const history = [];
   const MAX_HISTORY = 50;
   let globalMuted = false;
+
+  // ── Tauri bridge ────────────────────────────────────
+  var TAURI = (typeof window.__TAURI__ !== 'undefined') ? window.__TAURI__ : null;
+  var IS_DESKTOP = TAURI !== null;
+  function invoke(cmd, args) {
+    return TAURI ? TAURI.core.invoke(cmd, args || {}) : Promise.reject(new Error('not in tauri'));
+  }
 
   const sourceEnabled = {
     'claude-code': true,
@@ -914,11 +948,25 @@
     }
   }
 
+  var currentServerUrl = null;
+
+  function toWsUrl(httpUrl) {
+    try {
+      var u = new URL(httpUrl);
+      var proto = u.protocol === 'https:' ? 'wss:' : 'ws:';
+      return proto + '//' + u.host + u.pathname.replace(/\/$/, '');
+    } catch (e) {
+      return null;
+    }
+  }
+
   function connectWebSocket() {
+    if (!currentServerUrl) return;
     if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
 
-    var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(protocol + '//' + window.location.host);
+    var wsUrl = toWsUrl(currentServerUrl);
+    if (!wsUrl) { setConnected(false); return; }
+    ws = new WebSocket(wsUrl);
 
     ws.onopen = function () {
       setConnected(true);
@@ -948,6 +996,13 @@
       setConnected(false);
       ws.close();
     };
+  }
+
+  function setServerUrl(url) {
+    if (currentServerUrl === url) return;
+    currentServerUrl = url;
+    if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+    connectWebSocket();
   }
 
   function scheduleReconnect() {
@@ -1076,10 +1131,38 @@
   }
 
   // ── Init ─────────────────────────────────────────────
-  loadPreferences().then(function () {
-    buildSoundGrid();
+  var serverUrlInput = document.getElementById('serverUrlInput');
+  serverUrlInput.addEventListener('change', function () {
+    var val = this.value.trim();
+    if (!val) return;
+    setServerUrl(val);
+    if (IS_DESKTOP) {
+      invoke('get_config').then(function (cfg) {
+        cfg.server_url = val;
+        return invoke('set_config', { config: cfg });
+      }).catch(function (e) { console.error(e); });
+    }
   });
-  connectWebSocket();
+
+  function init() {
+    if (IS_DESKTOP) {
+      return invoke('get_config').then(function (cfg) {
+        soundPreferences = cfg.sound_preferences || {};
+        serverUrlInput.value = cfg.server_url;
+        volumeSlider.value = String(cfg.volume);
+        setServerUrl(cfg.server_url);
+        buildSoundGrid();
+      });
+    }
+    return loadPreferences().then(function () {
+      var origin = window.location.origin;
+      serverUrlInput.value = origin;
+      setServerUrl(origin);
+      buildSoundGrid();
+    });
+  }
+
+  init().catch(function (e) { console.error('init failed', e); });
 })();
 </script>
 </body>

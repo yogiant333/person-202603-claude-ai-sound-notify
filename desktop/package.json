@@ -1,0 +1,16 @@
+{
+  "name": "ai-sound-notify-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "copy:assets": "node scripts/copy-assets.mjs",
+    "prebuild:tauri": "npm run copy:assets",
+    "predev:tauri": "npm run copy:assets",
+    "tauri": "tauri",
+    "dev": "npm run copy:assets && tauri dev",
+    "build": "npm run copy:assets && tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0"
+  }
+}

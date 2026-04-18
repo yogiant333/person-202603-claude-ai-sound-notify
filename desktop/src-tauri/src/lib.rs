@@ -4,6 +4,7 @@ mod monitor;
 mod tray;
 
 use tauri::Manager;
+use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
 use tauri_plugin_store::StoreExt;
 
 pub fn run() {
@@ -17,9 +18,12 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .invoke_handler(tauri::generate_handler![
             config::get_config,
             config::set_config,
+            config::set_autostart,
+            config::get_autostart,
             audio::pick_audio_file,
         ])
         .setup(|app| {
@@ -30,6 +34,13 @@ pub fn run() {
                 .and_then(|store| store.get("app_config"))
                 .and_then(|v| serde_json::from_value::<config::AppConfig>(v).ok())
                 .unwrap_or_default();
+
+            let autostart = handle.autolaunch();
+            let _ = if cfg.autostart {
+                autostart.enable()
+            } else {
+                autostart.disable()
+            };
 
             tray::build(&handle)?;
             if let Some(w) = handle.get_webview_window("main") {

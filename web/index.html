@@ -601,6 +601,15 @@
     </div>
     <div class="sound-settings-body">
       <div class="sound-grid" id="soundGrid"></div>
+      <div class="sound-row" id="autostartRow" style="display:none">
+        <div class="sound-row-badges">
+          <span class="badge" style="background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border-color)">Desktop</span>
+        </div>
+        <label style="flex:1;font-size:0.82rem;color:var(--text-primary);display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="autostartToggle">
+          Start with Windows
+        </label>
+      </div>
     </div>
   </div>
 
@@ -1245,6 +1254,20 @@
           }
         });
         buildSoundGrid();
+
+        document.getElementById('autostartRow').style.display = '';
+        var autostartToggle = document.getElementById('autostartToggle');
+        autostartToggle.checked = !!cfg.autostart;
+        autostartToggle.addEventListener('change', function () {
+          var enabled = this.checked;
+          invoke('set_autostart', { enabled: enabled }).then(function () {
+            cfg.autostart = enabled;
+            return invoke('set_config', { config: cfg });
+          }).catch(function (e) {
+            console.error(e);
+            autostartToggle.checked = !enabled;
+          });
+        });
       });
     }
     return loadPreferences().then(function () {

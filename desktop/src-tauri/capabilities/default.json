@@ -11,6 +11,7 @@
     "core:webview:default",
     "store:default",
     "dialog:default",
-    "notification:default"
+    "notification:default",
+    "autostart:default"
   ]
 }

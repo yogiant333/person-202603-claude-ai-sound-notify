@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tauri::{AppHandle, Runtime};
+use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_store::StoreExt;
 
 const STORE_FILE: &str = "config.json";
@@ -63,6 +64,21 @@ pub fn get_config<R: Runtime>(app: AppHandle<R>) -> AppConfig {
 #[tauri::command]
 pub fn set_config<R: Runtime>(app: AppHandle<R>, config: AppConfig) -> Result<(), String> {
     save(&app, &config)
+}
+
+#[tauri::command]
+pub fn set_autostart<R: Runtime>(app: AppHandle<R>, enabled: bool) -> Result<(), String> {
+    let autostart = app.autolaunch();
+    if enabled {
+        autostart.enable().map_err(|e| e.to_string())
+    } else {
+        autostart.disable().map_err(|e| e.to_string())
+    }
+}
+
+#[tauri::command]
+pub fn get_autostart<R: Runtime>(app: AppHandle<R>) -> Result<bool, String> {
+    app.autolaunch().is_enabled().map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

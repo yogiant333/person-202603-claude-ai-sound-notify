@@ -37,6 +37,34 @@ The server URL is stored in `~/.claude/ai-sound-notify.local.md` and can be chan
 
 > **Note:** You still need to deploy the notification server separately (see [Quick Start](#quick-start) below).
 
+## Windows Desktop Client
+
+If your browser tab keeps going to sleep and swallowing notifications, install the Windows desktop client. It runs in the system tray, plays sounds without any autoplay restriction, can pick local audio files for each event, and raises a distinct alarm when the notification server becomes unreachable.
+
+**Download:** Grab `AI Sound Notify_<version>_x64-setup.exe` from the latest release.
+
+**Features:**
+
+- ~5 MB installer, ~40 MB RAM idle
+- System tray, close-to-tray, single instance, optional auto-start with Windows
+- Native Windows toast notifications
+- Server offline alarm (3 consecutive health-check failures over 45 s)
+- Works against the public server at `https://ainotify.keymantek.com:777` out of the box, or any other deployment
+- Per-source x event custom sound picker (browse any `.wav` / `.mp3` / `.ogg` / `.flac` / `.m4a`)
+
+**Build from source (Windows only):**
+
+```powershell
+winget install Rustlang.Rustup
+rustup default stable-msvc
+winget install Microsoft.VisualStudio.2022.BuildTools   # select "Desktop development with C++"
+cd desktop
+npm install
+npm run build
+```
+
+Output: `desktop/src-tauri/target/release/bundle/nsis/AI Sound Notify_*.exe`
+
 ## Quick Start
 
 ```bash
@@ -368,6 +396,34 @@ AI Sound Notify 是一个轻量级的声音通知系统。当 AI 编程助手（
 服务器地址保存在 `~/.claude/ai-sound-notify.local.md` 中，随时可通过 `/sound-notify-config` 修改。
 
 > **注意：** 通知服务器仍需单独部署（见下方快速开始）。
+
+## Windows 桌面客户端
+
+浏览器标签页休眠收不到声音？装这个常驻后台的桌面版。它会托盘化运行，没有浏览器 autoplay 限制，可以给每个事件单独挑本机音频文件，而且当服务器连不上时会发出警报声。
+
+**下载：** 从最新 Release 下载 `AI Sound Notify_<版本号>_x64-setup.exe`。
+
+**功能：**
+
+- ~5MB 安装包，空闲内存 ~40MB
+- 系统托盘、关闭即最小化到托盘、单实例运行、可选开机自启
+- 原生 Windows 通知气泡
+- 服务器离线警报（45 秒内连续 3 次健康检查失败触发）
+- 开箱默认连接 `https://ainotify.keymantek.com:777`，也可在设置里改成你自己的部署地址
+- 每个"来源 × 事件"组合可以单独挑一个本机音频文件（支持 .wav / .mp3 / .ogg / .flac / .m4a）
+
+**从源码构建（仅 Windows）：**
+
+```powershell
+winget install Rustlang.Rustup
+rustup default stable-msvc
+winget install Microsoft.VisualStudio.2022.BuildTools   # 勾选 "Desktop development with C++"
+cd desktop
+npm install
+npm run build
+```
+
+产出：`desktop/src-tauri/target/release/bundle/nsis/AI Sound Notify_*.exe`
 
 ## 快速开始
 

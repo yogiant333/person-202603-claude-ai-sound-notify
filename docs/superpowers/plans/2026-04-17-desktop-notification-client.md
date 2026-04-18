@@ -8,6 +8,8 @@
 
 **Tech Stack:** Rust (edition 2021) · Tauri 2.x · tauri-plugin-store · tauri-plugin-autostart · tauri-plugin-dialog · tauri-plugin-notification · tauri-plugin-single-instance · reqwest · tokio · serde · Node 20 (tauri-cli + build glue) · Windows 10/11 + MSVC toolchain · WebView2 Evergreen runtime.
 
+> **Plan deviation (recorded after Task 1):** the Tauri entry point is split across `src/main.rs` (thin binary that calls `ai_sound_notify_lib::run()`) and `src/lib.rs` (holds the `tauri::Builder` chain, `mod` declarations, and `generate_handler!`). This matches the `cargo create-tauri-app` 2.x layout and keeps the option of mobile targets open. **Every subsequent task that says "edit `main.rs`" — Tasks 3 / 5 / 7 / 8 / 9 — should edit `lib.rs` instead.** The code snippets inside those tasks remain correct; only the target file name changes.
+
 > **Build-host note:** all `npm run tauri …` and `cargo` commands MUST run on Windows (PowerShell or cmd.exe). WSL is fine for editing, git, and `cargo check`. Where a command targets Windows specifically, the step labels it `[Windows]`. All other steps can run anywhere.
 
 ---

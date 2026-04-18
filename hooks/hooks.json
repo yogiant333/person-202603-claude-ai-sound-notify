@@ -1,35 +1,39 @@
 {
-  "Stop": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh claude-code task_complete",
-          "timeout": 10
-        }
-      ]
-    }
-  ],
-  "Notification": [
-    {
-      "matcher": "idle_prompt",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh claude-code need_input 'Claude is idle, needs your input'",
-          "timeout": 10
-        }
-      ]
-    },
-    {
-      "matcher": "permission_prompt",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh claude-code need_input 'Claude needs permission'",
-          "timeout": 10
-        }
-      ]
-    }
-  ]
+  "description": "Sound notifications when AI tasks complete or need input",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh claude-code task_complete",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh claude-code need_input 'Claude is idle, needs your input'",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh claude-code need_input 'Claude needs permission'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
 }

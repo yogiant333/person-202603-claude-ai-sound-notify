@@ -70,3 +70,51 @@ Run this checklist after every desktop release build.
 - [ ] Windows Settings → Apps → **AI Sound Notify** → Uninstall
 - [ ] Installation folder removed from `%LOCALAPPDATA%\Programs\`
 - [ ] Autostart registry entry removed
+
+---
+
+## Rebuilding after an icon change (gotcha)
+
+Replacing `desktop/src-tauri/source-icon.png` + re-running `npx tauri icon`
+regenerates `icons/icon.ico` but **Cargo's incremental build does NOT
+re-embed the icon into `ai-sound-notify.exe`** on a subsequent `npm run build`.
+
+The build script (`build.rs` → `tauri_build::build()`) generates a
+`resource.rc` referencing `icons/icon.ico` and compiles it to `resource.lib`.
+Cargo caches that `resource.lib` based on the build script's fingerprint, which
+does not track the contents of `icons/icon.ico`. The regenerated `.ico` stays
+on disk but the .exe keeps the old resource.
+
+**Reliable fix — wipe the build-script output directory before rebuilding:**
+
+```bash
+# from WSL, repo root
+rm -rf desktop/src-tauri/target/release/build/ai-sound-notify-* \
+       desktop/src-tauri/target/release/ai-sound-notify.exe
+(cd desktop && npm run build)
+```
+
+Or from PowerShell:
+
+```powershell
+Remove-Item -Recurse -Force desktop\src-tauri\target\release\build\ai-sound-notify-*
+Remove-Item -Force desktop\src-tauri\target\release\ai-sound-notify.exe
+cd desktop; npm run build
+```
+
+`cargo clean -p ai-sound-notify` is NOT enough — the cached `.lib` for the
+build-script output is in a sibling directory it doesn't touch. `cargo clean`
+(without `-p`) works but recompiles all ~400 deps (~3 min). The targeted
+delete above only loses our own crate + resource step (~1 min).
+
+**Verify the new icon got embedded:**
+
+```powershell
+Add-Type -AssemblyName System.Drawing
+$i = [System.Drawing.Icon]::ExtractAssociatedIcon('desktop\src-tauri\target\release\ai-sound-notify.exe')
+$i.ToBitmap().Save('C:\tmp\icon-check.png')
+explorer.exe C:\tmp\icon-check.png
+```
+
+Compare the extracted PNG visually against the intended design before
+uploading the installer.
